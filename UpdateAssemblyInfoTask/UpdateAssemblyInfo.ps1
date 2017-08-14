@@ -10,7 +10,8 @@
     [string]$assemblyVersion, 
     [string]$assemblyFileVersion, 
     [string]$assemblyInformationalVersion,
-    [string]$customAttributes
+    [string]$customAttributes,
+    [string]$fullPathPattern
 )
 
 Write-Host ([Environment]::NewLine)
@@ -30,6 +31,7 @@ Write-Host ("Version: " + $assemblyVersion)
 Write-Host ("File version: " + $assemblyFileVersion)
 Write-Host ("InformationalVersion: " + $assemblyInformationalVersion)
 Write-Host ("Custom attributes: " + $customAttributes)
+Write-Host ("Full path pattern: " + $fullPathPattern)
 
 function UpdateAssemblyInfo()
 {
@@ -154,5 +156,5 @@ function WriteCustomAttributes($customAttributes)
 
 if(ValidateParams)
 {
-    Get-Childitem -Path $rootFolder -recurse |? {$_.Name -like $filePattern} | UpdateAssemblyInfo; 
+    Get-Childitem -Path $rootFolder -recurse |? {$_.Name -like $filePattern -and $_.FullName -like $fullPathPattern} | UpdateAssemblyInfo; 
 }

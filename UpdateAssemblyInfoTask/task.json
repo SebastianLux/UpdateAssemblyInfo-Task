@@ -107,6 +107,14 @@
                        "defaultValue":  "",
                        "required":  false,
                        "helpMarkDown":  "Update custom attributes using the pattern 'AssemblyAttribute=value', each key-value pair separated by a semicolon (e.g. 'FirstNameAssemblyAttribute=John;LastNameAssemblyAttribute=Doe')."
+                   },
+                   {
+                       "name":  "fullPathPattern",
+                       "type":  "string",
+                       "label":  "Full path pattern",
+                       "defaultValue":  "*",
+                       "required":  true,
+                       "helpMarkDown":  "This lets you futher filter matched files using the full path to the matched file (e.g. '*\\Some Folder\\*')."
                    }
                ],
     "execution":  {
