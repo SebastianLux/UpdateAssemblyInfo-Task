@@ -7,10 +7,11 @@
     [string]$assemblyCompany,
     [string]$assemblyTrademark,
     [string]$assemblyConfiguration,
-    [string]$assemblyVersion, 
-    [string]$assemblyFileVersion, 
+    [string]$assemblyVersion,
+    [string]$assemblyFileVersion,
     [string]$assemblyInformationalVersion,
-    [string]$customAttributes
+    [string]$customAttributes,
+    [boolen]$addMissingAttributes
 )
 
 Write-Host ([Environment]::NewLine)
@@ -30,6 +31,7 @@ Write-Host ("Version: " + $assemblyVersion)
 Write-Host ("File version: " + $assemblyFileVersion)
 Write-Host ("InformationalVersion: " + $assemblyInformationalVersion)
 Write-Host ("Custom attributes: " + $customAttributes)
+Write-Host ("Add Missing Attributes: " + $addMissingAttributes)
 
 function UpdateAssemblyInfo()
 {
@@ -37,10 +39,14 @@ function UpdateAssemblyInfo()
     Write-Host ("Searching for files...")
     Write-Host("============================================================")
 
-    foreach ($file in $input) 
+    foreach ($file in $input)
     {
-        
         Write-Host ($file.FullName)
+        $valuePrefix = '@'
+        if ($file.Extension -eq ".vb")
+        {
+            $valuePrefix = ''
+        }
 
         $tmpFile = $file.FullName + ".tmp"
 
@@ -58,8 +64,8 @@ function UpdateAssemblyInfo()
         $fileContent = TryReplace "AssemblyVersion" $assemblyVersion;
         $fileContent = TryReplace "AssemblyFileVersion" $assemblyFileVersion;
         $fileContent = TryReplace "AssemblyInformationalVersion" $assemblyInformationalVersion;
-        
-        if($customAttributes)
+
+        if ($customAttributes)
         {
             Write-Host ([Environment]::NewLine)
             Write-Host("Updating custom attributes")
@@ -71,7 +77,7 @@ function UpdateAssemblyInfo()
         Write-Host("Saving changes...")
 
         Set-Content $tmpFile -value $fileContent -encoding utf8
-    
+
         Move-Item $tmpFile $file.FullName -force
 
         Write-Host ([Environment]::NewLine)
@@ -84,26 +90,22 @@ function UpdateAssemblyInfo()
 
 function TryReplace($attributeKey, $value)
 {
-    if($value)
+    if ($value)
     {
-        $containsAttributeKey = $fileContent | %{$_ -match $attributeKey}
+        $containsAttributeKey = $fileContent | ForEach-Object {$_ -match $attributeKey}
+        $attribute = $attributeKey + "($valuePrefix`"$value`")";
 
-        If($containsAttributeKey -contains $true)
+        if ($containsAttributeKey -contains $true)
         {
             Write-Host("Updating '$attributeKey'...")
-
-            if($file.Extension -eq ".vb")
-            {
-                $attribute = $attributeKey + '("' + $value + '")';
-            }
-            else
-            {
-                $attribute = $attributeKey + '(@"' + $value + '")';
-            }
-
-            $fileContent = $fileContent -replace ($attributeKey +'\(@{0,1}".*"\)'), $attribute
+            $fileContent = $fileContent -replace ($attributeKey + '\(@{0,1}".*"\)'), $attribute
         }
-        else
+        elseif ($addMissingAttributes)
+        {
+            Write-Host("Adding '$attributeKey' to file...")
+            $fileContent = $fileContent + [Environment]::NewLine + $attribute
+        } 
+        else 
         {
             Write-Host("Skipped '$attributeKey' (not found in file)")
         }
@@ -125,34 +127,34 @@ function ValidateVersionString($versionString)
 
 function ValidateParams()
 {
-    if($assemblyVersion -and (-not (ValidateVersionString $assemblyVersion)))
+    if ($assemblyVersion -and (-not (ValidateVersionString $assemblyVersion)))
     {
         Write-Host ("'$assemblyVersion' is not a valid parameter for attribute 'AssemblyVersion'")
         return $false
     }
 
-    if($assemblyFileVersion -and (-not (ValidateVersionString $assemblyFileVersion)))
+    if ($assemblyFileVersion -and (-not (ValidateVersionString $assemblyFileVersion)))
     {
         Write-Host ("'$assemblyFileVersion' is not a valid parameter for attribute 'AssemblyFileVersion'")
         return $false
     }
 
     return $true
- }
+}
 
 function WriteCustomAttributes($customAttributes)
 {
-    foreach($customAttribute in ($customAttributes -split ';'))
+    foreach ($customAttribute in ($customAttributes -split ';'))
     {
         $customAttributeKey, $customAttributeValue = $customAttribute.Split('=')
-      
+
         $fileContent = TryReplace $customAttributeKey $customAttributeValue
     }
 
     return $fileContent
 }
 
-if(ValidateParams)
+if (ValidateParams)
 {
-    Get-Childitem -Path $rootFolder -recurse |? {$_.Name -like $filePattern} | UpdateAssemblyInfo; 
+    Get-Childitem -Path $rootFolder -recurse | Where-Object {$_.Name -like $filePattern} | UpdateAssemblyInfo;
 }
