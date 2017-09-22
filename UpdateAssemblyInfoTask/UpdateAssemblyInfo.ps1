@@ -103,7 +103,7 @@ function TryReplace($attributeKey, $value)
         elseif ($addMissingAttributes)
         {
             Write-Host("Adding '$attributeKey' to file...")
-            $fileContent = $fileContent + [Environment]::NewLine + $attribute
+            $fileContent = $fileContent + [Environment]::NewLine + "[assembly: $attribute]"
         } 
         else 
         {
